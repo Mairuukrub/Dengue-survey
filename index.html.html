@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แบบสำรวจลูกน้ำยุงลาย</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', sans-serif; background: #f5f5f5; color: #222; font-size: 16px; }
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap');
+  .topbar { background: #1D9E75; color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar h1 { font-size: 17px; font-weight: 600; }
+  .topbar .step { font-size: 13px; opacity: 0.85; }
+  .progress-wrap { background: #0F6E56; height: 4px; }
+  .progress-bar { background: #9FE1CB; height: 4px; transition: width 0.4s; }
+  .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+  .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card h2 { font-size: 15px; font-weight: 600; color: #1D9E75; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
+  .field input, .field select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fafafa; }
+  .field input:focus, .field select:focus { outline: none; border-color: #1D9E75; background: #fff; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .container-table { width: 100%; }
+  .container-table .header-row { display: grid; grid-template-columns: 1fr 80px 80px; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid #eee; margin-bottom: 4px; }
+  .container-table .header-row span { font-size: 12px; color: #888; font-weight: 500; text-align: center; }
+  .container-table .header-row span:first-child { text-align: left; }
+  .crow { display: grid; grid-template-columns: 1fr 80px 80px; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid #f0f0f0; }
+  .crow:last-child { border-bottom: none; }
+  .crow .cname { font-size: 14px; }
+  .crow input[type=number] { width: 100%; padding: 7px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; text-align: center; font-family: inherit; background: #fafafa; }
+  .crow input[type=number]:focus { outline: none; border-color: #1D9E75; background: #fff; }
+  .check-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+  .check-row:last-child { border-bottom: none; }
+  .check-row input[type=checkbox] { width: 18px; height: 18px; accent-color: #1D9E75; cursor: pointer; flex-shrink: 0; }
+  .totals-bar { background: #E1F5EE; border-radius: 8px; padding: 10px 14px; display: flex; gap: 20px; font-size: 13px; margin-top: 10px; }
+  .totals-bar span strong { color: #0F6E56; }
+  .totals-bar span.warn strong { color: #D85A30; }
+  .btn-row { display: flex; gap: 10px; margin-top: 6px; }
+  .btn { padding: 12px 20px; border-radius: 10px; font-size: 15px; font-family: inherit; font-weight: 500; cursor: pointer; border: none; flex: 1; }
+  .btn-primary { background: #1D9E75; color: #fff; }
+  .btn-primary:active { background: #0F6E56; }
+  .btn-secondary { background: #f0f0f0; color: #555; flex: 0 0 auto; padding: 12px 16px; }
+  .btn-outline { background: #fff; color: #888; border: 1px solid #ddd; width: 100%; margin-top: 8px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Summary */
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .metric { background: #f8f8f8; border-radius: 10px; padding: 14px; }
+  .metric .mlabel { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .metric .mval { font-size: 26px; font-weight: 600; color: #222; }
+  .metric .munit { font-size: 12px; color: #888; }
+  .metric.danger .mval { color: #D85A30; }
+  .metric.success .mval { color: #1D9E75; }
+  .ci-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .ci-box { background: #f8f8f8; border-radius: 10px; padding: 12px; }
+  .ci-box .clabel { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .ci-box .cval { font-size: 20px; font-weight: 600; }
+  .ci-box .cnote { font-size: 10px; color: #aaa; margin-top: 2px; }
+  .green { color: #1D9E75; }
+  .red { color: #D85A30; }
+  .house-list { }
+  .hitem { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+  .hitem:last-child { border-bottom: none; }
+  .hitem .haddr { font-weight: 500; }
+  .hitem .hdetail { color: #888; font-size: 13px; display: flex; align-items: center; gap: 5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.red { background: #D85A30; }
+  .dot.green { background: #1D9E75; }
+  .badge { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 99px; margin-bottom: 6px; }
+  .badge.green { background: #E1F5EE; color: #0F6E56; }
+  .badge.gray { background: #eee; color: #666; }
+
+  @media (max-width: 480px) {
+    .grid3 { grid-template-columns: 1fr 1fr; }
+    .ci-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🦟 สำรวจลูกน้ำยุงลาย</h1>
+  <span class="step" id="top-step"></span>
+</div>
+<div class="progress-wrap">
+  <div class="progress-bar" id="prog-bar" style="width:0%"></div>
+</div>
+
+<!-- SCREEN 1: Setup -->
+<div class="screen active" id="s-setup">
+<div class="container">
+  <div class="card" style="margin-top:16px">
+    <h2>📋 ข้อมูลการสำรวจ</h2>
+    <div class="grid3">
+      <div class="field"><label>หมู่ที่</label><input id="moo" type="text" placeholder="5"></div>
+      <div class="field"><label>ตำบล</label><input id="tambon" type="text" placeholder="ตำบล"></div>
+      <div class="field"><label>อำเภอ</label><input id="amphoe" type="text" placeholder="อำเภอ"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>ผู้สำรวจ</label><input id="surveyor" type="text" placeholder="ชื่อ-สกุล"></div>
+      <div class="field"><label>วันที่สำรวจ</label><input id="sdate" type="date"></div>
+    </div>
+    <div class="field"><label>จำนวนหลังคาเรือนในพื้นที่</label><input id="total-h" type="number" min="1" placeholder="เช่น 50"></div>
+  </div>
+  <button class="btn btn-primary" onclick="startSurvey()">เริ่มสำรวจ →</button>
+</div>
+</div>
+
+<!-- SCREEN 2: Per-house form -->
+<div class="screen" id="s-form">
+<div class="container">
+  <div class="card" style="margin-top:16px">
+    <h2 id="form-house-title">🏠 หลังคาเรือนที่ 1</h2>
+    <div class="grid2">
+      <div class="field"><label>เลขที่บ้าน</label><input id="f-addr" type="text" placeholder="12/3"></div>
+      <div class="field"><label>ชื่อเจ้าบ้าน</label><input id="f-owner" type="text" placeholder="(ถ้ามี)"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🪣 จำนวนภาชนะ</h2>
+    <div class="container-table">
+      <div class="header-row">
+        <span>ประเภทภาชนะ</span>
+        <span>สำรวจพบ</span>
+        <span>มีลูกน้ำ</span>
+      </div>
+      <div id="crows"></div>
+    </div>
+    <div class="totals-bar">
+      <span>ภาชนะรวม: <strong id="f-tot">0</strong></span>
+      <span class="warn">มีลูกน้ำ: <strong id="f-pos">0</strong></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📝 มาตรการ</h2>
+    <div id="measures"></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="skipHouse()">ข้ามหลังนี้</button>
+    <button class="btn btn-primary" onclick="submitHouse()">บันทึก และไปหลังถัดไป →</button>
+  </div>
+  <button class="btn btn-outline" onclick="finishSurvey()">สรุปผลและจบการสำรวจ</button>
+</div>
+</div>
+
+<!-- SCREEN 3: Summary -->
+<div class="screen" id="s-summary">
+<div class="container">
+  <div class="card" style="margin-top:16px">
+    <span class="badge green">สำรวจเสร็จสิ้น</span>
+    <h2 style="margin-top:4px">📊 สรุปผลการสำรวจ</h2>
+    <p id="sum-meta" style="font-size:13px;color:#888;margin-bottom:14px"></p>
+    <div class="metric-grid">
+      <div class="metric"><div class="mlabel">หลังคาเรือนที่สำรวจ</div><div class="mval" id="sum-h">0</div><div class="munit">หลัง</div></div>
+      <div class="metric danger"><div class="mlabel">พบลูกน้ำยุงลาย</div><div class="mval" id="sum-ph">0</div><div class="munit">หลัง</div></div>
+      <div class="metric"><div class="mlabel">ภาชนะทั้งหมด</div><div class="mval" id="sum-c">0</div><div class="munit">ภาชนะ</div></div>
+      <div class="metric danger"><div class="mlabel">ภาชนะมีลูกน้ำ</div><div class="mval" id="sum-pc">0</div><div class="munit">ภาชนะ</div></div>
+    </div>
+    <div class="ci-row">
+      <div class="ci-box"><div class="clabel">House Index (HI)</div><div class="cval" id="sum-hi">0%</div><div class="cnote">พบ / สำรวจ × 100</div></div>
+      <div class="ci-box"><div class="clabel">Container Index (CI)</div><div class="cval" id="sum-ci">0%</div><div class="cnote">ลูกน้ำ / ทั้งหมด × 100</div></div>
+      <div class="ci-box"><div class="clabel">ความเสี่ยง</div><div class="cval" id="sum-risk" style="font-size:14px">-</div><div class="cnote">HI ≥ 10% = เสี่ยง</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🏠 รายการหลังคาเรือน</h2>
+    <div class="house-list" id="sum-list"></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="restartSurvey()">เริ่มใหม่</button>
+    <button class="btn btn-primary" onclick="printSummary()">🖨️ พิมพ์ / บันทึก PDF</button>
+  </div>
+</div>
+</div>
+
+<script>
+const CONTAINERS = ['โอ่งน้ำกิน','น้ำใช้/ห้องน้ำ','ตู้กับข้าว','โอ่งขนาดใหญ่','ยางรถยนต์','วงบ่อซีเมนต์','อื่นๆ'];
+const MEASURES = ['พ่นหมอกควัน','ใส่ทรายอะเบท','เทน้ำทิ้ง/ล้างภาชนะ','ปิดฝาภาชนะ','อื่นๆ'];
+
+let state = { moo:'',tambon:'',amphoe:'',surveyor:'',date:'',totalH:0,current:1,records:[] };
+
+function buildContainerRows(){
+  document.getElementById('crows').innerHTML = CONTAINERS.map((n,i)=>`
+    <div class="crow">
+      <span class="cname">${n}</span>
+      <input type="number" min="0" id="cs${i}" value="" oninput="calcTotals()">
+      <input type="number" min="0" id="cp${i}" value="" oninput="calcTotals()">
+    </div>`).join('');
+}
+
+function buildMeasures(){
+  document.getElementById('measures').innerHTML = MEASURES.map((m,i)=>`
+    <label class="check-row"><input type="checkbox" id="msr${i}"> ${m}</label>`).join('');
+}
+
+function calcTotals(){
+  let t=0,p=0;
+  CONTAINERS.forEach((_,i)=>{
+    t+=parseInt(document.getElementById('cs'+i)?.value||0)||0;
+    p+=parseInt(document.getElementById('cp'+i)?.value||0)||0;
+  });
+  document.getElementById('f-tot').textContent=t;
+  document.getElementById('f-pos').textContent=p;
+}
+
+function setProgress(cur,total){
+  const pct = total>0?Math.round((cur-1)/total*100):0;
+  document.getElementById('prog-bar').style.width=pct+'%';
+  document.getElementById('top-step').textContent = cur<=total?`หลังที่ ${cur}/${total}`:'เสร็จสิ้น';
+}
+
+function startSurvey(){
+  state.moo=document.getElementById('moo').value.trim();
+  state.tambon=document.getElementById('tambon').value.trim();
+  state.amphoe=document.getElementById('amphoe').value.trim();
+  state.surveyor=document.getElementById('surveyor').value.trim();
+  state.date=document.getElementById('sdate').value;
+  state.totalH=parseInt(document.getElementById('total-h').value)||20;
+  state.current=1; state.records=[];
+  buildContainerRows(); buildMeasures();
+  showScreen('s-form'); updateFormHeader();
+}
+
+function updateFormHeader(){
+  document.getElementById('form-house-title').textContent=`🏠 หลังคาเรือนที่ ${state.current}`;
+  setProgress(state.current,state.totalH);
+  document.getElementById('f-addr').value='';
+  document.getElementById('f-owner').value='';
+  CONTAINERS.forEach((_,i)=>{ document.getElementById('cs'+i).value=''; document.getElementById('cp'+i).value=''; });
+  MEASURES.forEach((_,i)=>{ document.getElementById('msr'+i).checked=false; });
+  calcTotals();
+}
+
+function getRecord(){
+  const containers=CONTAINERS.map((name,i)=>({name,s:parseInt(document.getElementById('cs'+i).value||0)||0,p:parseInt(document.getElementById('cp'+i).value||0)||0}));
+  const totalC=containers.reduce((a,c)=>a+c.s,0);
+  const posC=containers.reduce((a,c)=>a+c.p,0);
+  const msrs=MEASURES.filter((_,i)=>document.getElementById('msr'+i).checked);
+  return {no:state.current,addr:document.getElementById('f-addr').value.trim(),owner:document.getElementById('f-owner').value.trim(),containers,totalC,posC,hasLarvae:posC>0,measures:msrs,skipped:false};
+}
+
+function submitHouse(){ state.records.push(getRecord()); nextHouse(); }
+function skipHouse(){ state.records.push({no:state.current,addr:'(ข้าม)',skipped:true,totalC:0,posC:0,hasLarvae:false}); nextHouse(); }
+function nextHouse(){
+  if(state.current>=state.totalH){ finishSurvey(); return; }
+  state.current++; updateFormHeader();
+}
+
+function finishSurvey(){
+  showScreen('s-summary'); setProgress(state.totalH+1,state.totalH);
+  document.getElementById('prog-bar').style.width='100%';
+  document.getElementById('top-step').textContent='เสร็จสิ้น';
+  renderSummary();
+}
+
+function renderSummary(){
+  const r=state.records.filter(x=>!x.skipped);
+  const h=r.length, ph=r.filter(x=>x.hasLarvae).length;
+  const c=r.reduce((a,x)=>a+x.totalC,0), pc=r.reduce((a,x)=>a+x.posC,0);
+  const hi=h>0?ph/h*100:0, ci=c>0?pc/c*100:0;
+  document.getElementById('sum-h').textContent=h;
+  document.getElementById('sum-ph').textContent=ph;
+  document.getElementById('sum-c').textContent=c;
+  document.getElementById('sum-pc').textContent=pc;
+  const hiEl=document.getElementById('sum-hi'), ciEl=document.getElementById('sum-ci'), rEl=document.getElementById('sum-risk');
+  hiEl.textContent=hi.toFixed(2)+'%'; hiEl.className='cval '+(hi>=10?'red':'green');
+  ciEl.textContent=ci.toFixed(2)+'%'; ciEl.className='cval '+(ci>=10?'red':'green');
+  rEl.textContent=h===0?'-':hi>=10?'เสี่ยงสูง':'ความเสี่ยงต่ำ';
+  rEl.className='cval '+(h===0?'':hi>=10?'red':'green');
+  const meta=[state.moo?'หมู่ '+state.moo:'',state.tambon,state.amphoe,state.date].filter(Boolean).join(' · ');
+  document.getElementById('sum-meta').textContent=meta;
+  document.getElementById('sum-list').innerHTML=state.records.map(x=>{
+    if(x.skipped) return `<div class="hitem"><span class="haddr">หลังที่ ${x.no} — ข้าม</span><span class="hdetail">-</span></div>`;
+    return `<div class="hitem"><span class="haddr">หลังที่ ${x.no}${x.addr?' ('+x.addr+')':''}</span><span class="hdetail"><span class="dot ${x.hasLarvae?'red':'green'}"></span>${x.hasLarvae?'พบลูกน้ำ':'ไม่พบ'} · ${x.totalC} ภาชนะ</span></div>`;
+  }).join('');
+}
+
+function printSummary(){ window.print(); }
+function restartSurvey(){ if(confirm('เริ่มสำรวจใหม่? ข้อมูลจะหายไป')) showScreen('s-setup'); }
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
