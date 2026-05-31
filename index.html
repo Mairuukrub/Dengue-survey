@@ -565,10 +565,10 @@ function getRecord(){
   return{no:state.current,addr:document.getElementById('h-addr').value.trim(),owner:document.getElementById('h-owner').value.trim(),containers:cs,totalC,posC,hasLarvae:posC>0,measures:msrs,skipped:false};
 }
 function submitHouse(){
-  const rec=getRecord();
+  const rec = getRecord();
   state.records.push(rec);
-  sendToSheets(rec);
-  if(state.current>=state.totalH) finishSurvey();
+  // ลบบรรทัด sendToSheets(rec); ออก
+  if(state.current >= state.totalH) finishSurvey();
   else { state.current++; updateHouseHeader(); }
 }
 function skipHouse(){
@@ -604,11 +604,52 @@ function prevHouse(){
     calcTot();
   }
 }
+
+function sendAllToSheets(){
+  if(!SCRIPT_URL || SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE') return;
+  const recs = state.records.filter(r => !r.skipped && r.totalC >= 0);
+  if(!recs.length) return;
+
+  showToast('กำลังบันทึกข้อมูลทั้งหมด...','#555');
+
+  // ส่งทีละหลังแบบ sequential
+  let i = 0;
+  function sendNext(){
+    if(i >= recs.length){
+      showToast('✅ บันทึกครบทุกหลังแล้ว ('+recs.length+' หลัง)','#0D5C3A');
+      return;
+    }
+    const rec = recs[i];
+    const p = {
+      date:state.date, moo:state.moo, tambon:state.tambon,
+      amphoe:'กันทรลักษ์', surveyor:state.surveyor,
+      houseNo:rec.no, addr:rec.addr, owner:rec.owner,
+      c0s:rec.containers[0]?.s||0, c0p:rec.containers[0]?.p||0,
+      c1s:rec.containers[1]?.s||0, c1p:rec.containers[1]?.p||0,
+      c2s:rec.containers[2]?.s||0, c2p:rec.containers[2]?.p||0,
+      c3s:rec.containers[3]?.s||0, c3p:rec.containers[3]?.p||0,
+      c4s:rec.containers[4]?.s||0, c4p:rec.containers[4]?.p||0,
+      c5s:rec.containers[5]?.s||0, c5p:rec.containers[5]?.p||0,
+      c6s:rec.containers[6]?.s||0, c6p:rec.containers[6]?.p||0,
+      totalC:rec.totalC, posC:rec.posC,
+      hasLarvae:rec.hasLarvae, measures:rec.measures
+    };
+    fetch(SCRIPT_URL,{
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(p)
+    }).then(()=>{ i++; sendNext(); })
+      .catch(()=>{ i++; sendNext(); }); // ถ้า error ก็ข้ามไปหลังถัดไป
+  }
+  sendNext();
+}
+
 function finishSurvey(){
   document.getElementById('s-house').style.display='none';
   document.getElementById('s-summary').style.display='block';
   document.getElementById('prog').style.width='100%';
   document.getElementById('top-step').textContent='เสร็จ';
+  sendAllToSheets();
   const recs=state.records.filter(r=>!r.skipped);
   const h=recs.length,ph=recs.filter(r=>r.hasLarvae).length;
   const c=recs.reduce((a,r)=>a+r.totalC,0),pc=recs.reduce((a,r)=>a+r.posC,0);
