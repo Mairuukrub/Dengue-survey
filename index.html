@@ -334,6 +334,30 @@ function onDateChange(){
 }
 updateDays();
 
+// ===== ตั้งวันที่ปัจจุบันอัตโนมัติ =====
+(function(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  const d = String(now.getDate()).padStart(2,'0');
+
+  // ตั้งปี
+  const yearSel = document.getElementById('f-year');
+  for(let i=0; i<yearSel.options.length; i++){
+    if(yearSel.options[i].value === String(y)){
+      yearSel.selectedIndex = i; break;
+    }
+  }
+  // ตั้งเดือน
+  document.getElementById('f-month').value = m;
+  // อัปเดต dropdown วันให้ตรงกับเดือน/ปีนี้ก่อน
+  updateDays();
+  // ตั้งวัน
+  document.getElementById('f-day').value = d;
+  // แสดง preview
+  onDateChange();
+})();
+
 // ===== UTILS =====
 function formatDateTH(iso){
   if(!iso) return '';
