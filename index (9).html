@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สำรวจลูกน้ำยุงลาย — กันทรลักษ์</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;background:#ECECEC;color:#111;font-size:15px}
+.topbar{background:#0D5C3A;color:#fff;padding:13px 20px;display:flex;align-items:center;justify-content:space-between}
+.topbar-title{font-size:16px;font-weight:700}
+.topbar-sub{font-size:11px;opacity:.75;margin-top:2px}
+.nav{background:#0F6E46;display:flex;overflow-x:auto}
+.nav-btn{padding:11px 18px;font-size:13px;font-weight:600;color:rgba(255,255,255,.6);border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;font-family:inherit}
+.nav-btn.active{color:#fff;border-bottom-color:#4FFFB0}
+.page{display:none;padding:14px;max-width:680px;margin:0 auto}
+.page.active{display:block}
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #ddd;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card h3{font-size:13px;font-weight:700;color:#0D5C3A;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:12px;color:#555;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.field input,.field select{width:100%;padding:9px 12px;border:1.5px solid #ccc;border-radius:8px;font-size:14px;font-family:inherit;background:#fafafa;color:#111}
+.field input:focus,.field select:focus{outline:none;border-color:#0D5C3A;background:#fff}
+.field input[readonly]{background:#f0f0f0;color:#666;cursor:not-allowed}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.date-row{display:flex;gap:6px}
+.date-row select{padding:9px 8px;border:1.5px solid #ccc;border-radius:8px;font-size:14px;font-family:inherit;background:#fafafa;color:#111}
+.date-row select:focus{outline:none;border-color:#0D5C3A;background:#fff}
+.date-row .sel-day{flex:1}.date-row .sel-month{flex:2}.date-row .sel-year{flex:1.5}
+.ctable-head{display:grid;grid-template-columns:1fr 68px 68px;gap:6px;padding:6px 0;border-bottom:2px solid #eee;margin-bottom:2px}
+.ctable-head span{font-size:11px;color:#777;font-weight:700;text-align:center;text-transform:uppercase}
+.ctable-head span:first-child{text-align:left}
+.crow{display:grid;grid-template-columns:1fr 68px 68px;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid #f2f2f2}
+.crow input{width:100%;padding:6px;border:1.5px solid #ddd;border-radius:6px;font-size:13px;text-align:center;font-family:inherit}
+.crow input:focus{outline:none;border-color:#0D5C3A}
+.totals{background:#E8F5EE;border-radius:8px;padding:9px 13px;display:flex;gap:18px;font-size:13px;margin-top:8px;border:1px solid #C5E0D0}
+.totals .warn strong{color:#B91C1C}
+.totals strong{color:#0D5C3A;font-weight:700}
+.btn{padding:11px 20px;border-radius:10px;font-size:14px;font-family:inherit;font-weight:700;cursor:pointer;border:none}
+.btn-primary{background:#0D5C3A;color:#fff;width:100%}
+.btn-secondary{background:#E5E5E5;color:#333;padding:11px 14px}
+.btn-outline{background:#fff;color:#777;border:1.5px solid #ccc;width:100%;margin-top:8px}
+.prog-wrap{background:#0A4A2E;height:4px}
+.prog-bar{background:#4FFFB0;height:4px;transition:width .4s}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.metric{background:#fff;border-radius:12px;padding:13px;border:1px solid #ddd;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.metric-label{font-size:10px;color:#666;margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.metric-value{font-size:26px;font-weight:700;color:#111}
+.metric-value.danger{color:#B91C1C}
+.metric-value.success{color:#0D5C3A}
+.metric-unit{font-size:11px;color:#999;margin-top:1px}
+.metric-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.risk-table{width:100%;border-collapse:collapse;font-size:13px}
+.risk-table th{background:#0D5C3A;color:#fff;padding:9px 10px;text-align:left;font-weight:600}
+.risk-table td{padding:9px 10px;border-bottom:1px solid #eee}
+.badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;font-weight:700}
+.badge-red{background:#FEE2E2;color:#991B1B}
+.badge-green{background:#DCFCE7;color:#14532D}
+#map{width:100%;height:370px;border-radius:14px;border:1.5px solid #ccc;margin-bottom:12px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 22px;border-radius:9px;color:#fff;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.pin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;display:flex;align-items:center;justify-content:center}
+.pin-box{background:#fff;border-radius:18px;padding:30px 24px;width:300px;text-align:center}
+.pin-box h2{font-size:17px;font-weight:700;margin-bottom:4px}
+.pin-box p{font-size:13px;color:#888;margin-bottom:18px}
+.pin-dots{display:flex;justify-content:center;gap:14px;margin-bottom:22px}
+.pin-dot{width:15px;height:15px;border-radius:50%;background:#E5E5E5;transition:background .15s}
+.pin-dot.filled{background:#0D5C3A}
+.pin-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pin-key{background:#F5F5F5;border:none;border-radius:11px;padding:15px;font-size:19px;font-weight:600;cursor:pointer;font-family:inherit;color:#111}
+.pin-key:active{background:#E0E0E0}
+.pin-key.del{background:#FEE2E2;color:#991B1B;font-size:13px;font-weight:700}
+.pin-error{color:#B91C1C;font-size:13px;margin-top:10px;min-height:20px;font-weight:600}
+.date-filter{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:10px;border:1px solid #ddd;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.date-filter label{font-size:12px;font-weight:700;color:#555;white-space:nowrap}
+.date-filter input[type=date]{padding:7px 10px;border:1.5px solid #ccc;border-radius:8px;font-size:13px;font-family:inherit;flex:1;min-width:130px}
+.date-filter select{padding:7px 10px;border:1.5px solid #ccc;border-radius:8px;font-size:13px;font-family:inherit}
+.date-filter button{padding:7px 13px;background:#0D5C3A;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.date-range-info{text-align:center;font-size:12px;color:#666;margin-bottom:8px;font-weight:600;background:#f5f5f5;padding:7px 12px;border-radius:8px}
+.sum-card{background:#f6f6f6;border-radius:9px;padding:10px 13px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:13px;border:1px solid #eee}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px}
+.date-preview{text-align:center;font-size:13px;color:#0D5C3A;font-weight:600;margin-bottom:10px;min-height:20px}
+.loading{text-align:center;padding:30px;color:#888;font-size:14px}
+.loading-spinner{display:inline-block;width:24px;height:24px;border:3px solid #ddd;border-top-color:#0D5C3A;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sync-bar{background:#E8F5EE;border:1px solid #C5E0D0;border-radius:8px;padding:8px 12px;font-size:12px;color:#0D5C3A;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.sync-bar button{font-size:12px;padding:4px 10px;background:#0D5C3A;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">🦟 สำรวจลูกน้ำยุงลาย</div>
+    <div class="topbar-sub">อ.กันทรลักษ์ จ.ศรีสะเกษ</div>
+  </div>
+  <span id="top-step" style="font-size:12px;opacity:.85"></span>
+</div>
+<div class="prog-wrap"><div class="prog-bar" id="prog" style="width:0%"></div></div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="goPage('p-form',this)">📋 กรอกข้อมูล</button>
+  <button class="nav-btn" onclick="tryOpen('dash',this)">📊 Dashboard</button>
+  <button class="nav-btn" onclick="tryOpen('map',this)">🗺️ แผนที่</button>
+</div>
+
+<!-- PIN -->
+<div class="pin-overlay" id="pin-overlay" style="display:none">
+  <div class="pin-box">
+    <h2>🔒 ใส่รหัส PIN</h2>
+    <p>สำหรับเจ้าหน้าที่เท่านั้น</p>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-numpad">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key" onclick="pinCancel()">ยกเลิก</button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">ลบ</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
+<!-- กรอกข้อมูล -->
+<div class="page active" id="p-form">
+  <div id="s-setup">
+    <div class="card" style="margin-top:8px">
+      <h3>ข้อมูลทั่วไป</h3>
+      <div class="grid3">
+        <div class="field">
+          <label>หมู่ที่</label>
+          <input id="f-moo" type="number" min="1" placeholder="5">
+        </div>
+        <div class="field">
+          <label>ตำบล</label>
+          <select id="f-tambon">
+            <option value="">-- เลือก --</option>
+            <option value="กุดเสลา">กุดเสลา</option>
+            <option value="ขนุน">ขนุน</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>อำเภอ</label>
+          <input value="กันทรลักษ์" readonly>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>ผู้สำรวจ</label>
+          <input id="f-surveyor" type="text" placeholder="ชื่อ อสม.">
+        </div>
+        <div class="field">
+          <label>วันที่สำรวจ</label>
+          <div class="date-row">
+            <select class="sel-day" id="f-day" onchange="onDateChange()">
+              <option value="">วัน</option>
+            </select>
+            <select class="sel-month" id="f-month" onchange="onDateChange();updateDays()">
+              <option value="">เดือน</option>
+              <option value="01">มกราคม</option><option value="02">กุมภาพันธ์</option>
+              <option value="03">มีนาคม</option><option value="04">เมษายน</option>
+              <option value="05">พฤษภาคม</option><option value="06">มิถุนายน</option>
+              <option value="07">กรกฎาคม</option><option value="08">สิงหาคม</option>
+              <option value="09">กันยายน</option><option value="10">ตุลาคม</option>
+              <option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
+            </select>
+            <select class="sel-year" id="f-year" onchange="onDateChange();updateDays()">
+              <option value="">ปี</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>จำนวนหลังคาเรือนทั้งหมดในพื้นที่</label>
+        <input id="f-total" type="number" min="1" placeholder="เช่น 50">
+      </div>
+    </div>
+    <div class="date-preview" id="date-preview"></div>
+    <button class="btn btn-primary" onclick="startSurvey()">เริ่มสำรวจ →</button>
+  </div>
+
+  <div id="s-house" style="display:none">
+    <div class="card" style="margin-top:8px">
+      <h3 id="house-title">หลังคาเรือนที่ 1</h3>
+      <div style="font-size:12px;color:#666;margin-bottom:10px" id="house-meta"></div>
+      <div class="grid2">
+        <div class="field"><label>เลขที่บ้าน</label><input id="h-addr" type="text" placeholder="12/3"></div>
+        <div class="field"><label>ชื่อเจ้าบ้าน</label><input id="h-owner" type="text" placeholder="(ถ้ามี)"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>จำนวนภาชนะ</h3>
+      <div class="ctable-head"><span>ประเภท</span><span>สำรวจพบ</span><span>มีลูกน้ำ</span></div>
+      <div id="crows"></div>
+      <div class="totals">
+        <span>รวมภาชนะ: <strong id="tot-c">0</strong></span>
+        <span class="warn">มีลูกน้ำ: <strong id="tot-p">0</strong></span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>มาตรการที่ดำเนินการ</h3>
+      <div id="measures"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="skipHouse()">ข้ามหลังนี้</button>
+      <button class="btn btn-primary" style="flex:1" onclick="submitHouse()">บันทึก → หลังถัดไป</button>
+    </div>
+    <button class="btn btn-outline" onclick="finishSurvey()">จบการสำรวจและดูสรุป</button>
+  </div>
+
+  <div id="s-summary" style="display:none">
+    <div class="card" style="margin-top:8px;text-align:center">
+      <div style="font-size:38px;margin-bottom:8px">✅</div>
+      <div style="font-size:17px;font-weight:700;color:#0D5C3A;margin-bottom:4px">สำรวจเสร็จสิ้น!</div>
+      <div style="font-size:13px;color:#777" id="sum-meta"></div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">หลังที่สำรวจ</div><div class="metric-value" id="sum-h">0</div><div class="metric-unit">หลัง</div></div>
+      <div class="metric"><div class="metric-label">พบลูกน้ำ</div><div class="metric-value danger" id="sum-ph">0</div><div class="metric-unit">หลัง</div></div>
+    </div>
+    <div class="metric-3">
+      <div class="metric"><div class="metric-label">HI</div><div class="metric-value" id="sum-hi" style="font-size:20px">0%</div><div class="metric-unit">≥10% = เสี่ยง</div></div>
+      <div class="metric"><div class="metric-label">CI</div><div class="metric-value" id="sum-ci" style="font-size:20px">0%</div><div class="metric-unit">≥10% = เสี่ยง</div></div>
+      <div class="metric"><div class="metric-label">BI</div><div class="metric-value" id="sum-bi" style="font-size:20px">0</div><div class="metric-unit">≥50 = เสี่ยง</div></div>
+    </div>
+    <div class="card"><div id="sum-list"></div></div>
+    <button class="btn btn-primary" onclick="restartSurvey()">เริ่มสำรวจรอบใหม่</button>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div class="page" id="p-dash">
+  <div style="margin-top:8px">
+    <div class="sync-bar">
+      <span id="sync-status">📊 ข้อมูลจาก Google Sheets</span>
+      <button onclick="loadFromSheets()">🔄 รีเฟรช</button>
+    </div>
+    <div class="date-filter">
+      <label>📅</label>
+      <input type="date" id="df-from" onchange="applyFilter()">
+      <span style="font-size:13px;color:#777">ถึง</span>
+      <input type="date" id="df-to" onchange="applyFilter()">
+      <select id="df-tambon" onchange="applyFilter()">
+        <option value="">ทุกตำบล</option>
+        <option value="กุดเสลา">กุดเสลา</option>
+        <option value="ขนุน">ขนุน</option>
+      </select>
+      <button onclick="resetFilter()">ล้าง</button>
+    </div>
+    <div class="date-range-info" id="date-range-info">กำลังโหลดข้อมูล...</div>
+    <div id="dash-body">
+      <div class="loading"><div class="loading-spinner"></div><br>กำลังดึงข้อมูลจาก Google Sheets...</div>
+    </div>
+  </div>
+</div>
+
+<!-- แผนที่ -->
+<div class="page" id="p-map">
+  <div style="margin-top:8px">
+    <div class="sync-bar">
+      <span id="map-sync-status">🗺️ ข้อมูลจาก Google Sheets</span>
+      <button onclick="loadFromSheets()">🔄 รีเฟรช</button>
+    </div>
+    <div style="font-size:12px;color:#555;margin-bottom:6px;font-weight:600">🔴 เสี่ยงสูง (HI≥10% หรือ CI≥10% หรือ BI≥50) | 🟢 เสี่ยงต่ำ</div>
+    <div class="date-range-info" id="map-date-info">ยังไม่มีข้อมูล</div>
+    <div id="map"></div>
+    <div class="card"><h3>สรุปรายตำบล</h3><div id="map-summary"></div></div>
+    <button onclick="lockDash()" style="width:100%;padding:10px;background:#E5E5E5;color:#555;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px">🔒 ล็อกหน้าจอ</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== CONFIG =====
+// *** ใส่ URL ของ Apps Script ที่นี่ ***
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGIgvxF5Y6GZ4aku4aVQMZuhsy-tQ-T122gRcmVTOWA0IxFdLUJ7JBxICsk3YHVdo4uw/exec';
+const DASHBOARD_PIN = '2569';
+
+const CONTAINERS = ['โอ่งน้ำกิน','น้ำใช้/ห้องน้ำ','ตู้กับข้าว','โอ่งขนาดใหญ่','ยางรถยนต์','วงบ่อซีเมนต์','อื่นๆ'];
+const MEASURES   = ['พ่นหมอกควัน','ใส่ทรายอะเบท','เทน้ำทิ้ง/ล้างภาชนะ','ปิดฝาภาชนะ','อื่นๆ'];
+const TAMBON_COORDS = {'กุดเสลา':[14.5612,104.6278],'ขนุน':[14.6089,104.6521]};
+const MONTHS_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+let state = {moo:'',tambon:'',surveyor:'',date:'',totalH:20,current:1,records:[]};
+let sheetsData = []; // ข้อมูลจาก Google Sheets
+let chartArea = null, chartCont = null, leafMap = null;
+let unlocked = false, pinTarget = '', pinBuffer = '', pinNavBtn = null;
+let filterFrom = '', filterTo = '', filterTambon = '';
+let dashBuilt = false;
+
+// ===== DATE DROPDOWN =====
+function updateDays(){
+  const m = parseInt(document.getElementById('f-month').value)||0;
+  const y = parseInt(document.getElementById('f-year').value)||2026;
+  const maxDay = m===0 ? 31 : new Date(y, m, 0).getDate();
+  const cur = document.getElementById('f-day').value;
+  let html = '<option value="">วัน</option>';
+  for(let i=1; i<=maxDay; i++){
+    const v = String(i).padStart(2,'0');
+    html += `<option value="${v}"${cur===v?' selected':''}>${i}</option>`;
+  }
+  document.getElementById('f-day').innerHTML = html;
+}
+function getDateISO(){
+  const d=document.getElementById('f-day').value;
+  const m=document.getElementById('f-month').value;
+  const y=document.getElementById('f-year').value;
+  if(!d||!m||!y) return '';
+  return `${y}-${m}-${d}`;
+}
+function onDateChange(){
+  const iso = getDateISO();
+  document.getElementById('date-preview').textContent = iso ? 'วันที่สำรวจ: '+formatDateTH(iso) : '';
+}
+updateDays();
+
+// ===== UTILS =====
+function formatDateTH(iso){
+  if(!iso) return '';
+  const p = iso.split('-');
+  if(p.length<3) return iso;
+  return parseInt(p[2])+' '+MONTHS_TH[parseInt(p[1])-1]+' '+(parseInt(p[0])+543);
+}
+function isRisk(hi,ci,bi){ return hi>=10||ci>=10||bi>=50; }
+function showToast(msg,color){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=color; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),3000);
+}
+function setIdx(id,val,unit,isBI){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const danger = isBI ? val>=50 : val>=10;
+  el.textContent = val.toFixed(2)+unit;
+  el.className = 'metric-value '+(danger?'danger':'success');
+}
+
+// ===== PIN =====
+function tryOpen(target,btn){
+  if(unlocked){ openPage(target,btn); return; }
+  pinTarget=target; pinNavBtn=btn; pinBuffer='';
+  document.getElementById('pin-error').textContent='';
+  updatePinDots();
+  document.getElementById('pin-overlay').style.display='flex';
+}
+function pinPress(d){
+  if(pinBuffer.length>=4) return;
+  pinBuffer+=d; updatePinDots();
+  if(pinBuffer.length===4){
+    setTimeout(()=>{
+      if(pinBuffer===DASHBOARD_PIN){
+        unlocked=true;
+        document.getElementById('pin-overlay').style.display='none';
+        openPage(pinTarget,pinNavBtn);
+      } else {
+        document.getElementById('pin-error').textContent='รหัส PIN ไม่ถูกต้อง';
+        pinBuffer=''; updatePinDots();
+      }
+    },200);
+  }
+}
+function pinDel(){ pinBuffer=pinBuffer.slice(0,-1); updatePinDots(); }
+function pinCancel(){ document.getElementById('pin-overlay').style.display='none'; pinBuffer=''; }
+function updatePinDots(){
+  for(let i=0;i<4;i++) document.getElementById('pd'+i).className='pin-dot'+(i<pinBuffer.length?' filled':'');
+}
+function lockDash(){ unlocked=false; goPage('p-form',document.querySelector('.nav-btn')); }
+
+// ===== NAV =====
+function goPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+function openPage(target,btn){
+  const id = target==='dash' ? 'p-dash' : 'p-map';
+  goPage(id,btn);
+  loadFromSheets(); // ดึงข้อมูลจาก Sheets ทุกครั้งที่เปิด
+  if(target==='map') setTimeout(initMap,300);
+}
+
+// ===== LOAD FROM SHEETS =====
+function loadFromSheets(){
+  if(!SCRIPT_URL || SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE'){
+    sheetsData = [];
+    buildDashContent();
+    refreshDash();
+    return;
+  }
+  document.getElementById('sync-status').textContent = '🔄 กำลังโหลดข้อมูล...';
+  if(document.getElementById('map-sync-status'))
+    document.getElementById('map-sync-status').textContent = '🔄 กำลังโหลดข้อมูล...';
+
+  fetch(SCRIPT_URL)
+    .then(r=>r.json())
+    .then(res=>{
+      if(res.status==='ok'){
+        sheetsData = res.data || [];
+        const n = sheetsData.length;
+        document.getElementById('sync-status').textContent = `✅ โหลดแล้ว ${n} รายการ`;
+        if(document.getElementById('map-sync-status'))
+          document.getElementById('map-sync-status').textContent = `✅ โหลดแล้ว ${n} รายการ`;
+        // แปลง containers format
+        sheetsData = sheetsData.map(r=>({
+          ...r,
+          totalC: r.totalC||0,
+          posC: r.posC||0,
+          skipped: false,
+          containers:[
+            {name:'โอ่งน้ำกิน',s:r.c0s||0,p:r.c0p||0},
+            {name:'น้ำใช้/ห้องน้ำ',s:r.c1s||0,p:r.c1p||0},
+            {name:'ตู้กับข้าว',s:r.c2s||0,p:r.c2p||0},
+            {name:'โอ่งขนาดใหญ่',s:r.c3s||0,p:r.c3p||0},
+            {name:'ยางรถยนต์',s:r.c4s||0,p:r.c4p||0},
+            {name:'วงบ่อซีเมนต์',s:r.c5s||0,p:r.c5p||0},
+            {name:'อื่นๆ',s:r.c6s||0,p:r.c6p||0},
+          ]
+        }));
+        buildDashContent();
+        refreshDash();
+      }
+    })
+    .catch(err=>{
+      document.getElementById('sync-status').textContent = '⚠️ โหลดไม่สำเร็จ';
+      showToast('โหลดข้อมูลจาก Sheets ไม่สำเร็จ','#B91C1C');
+      buildDashContent();
+      refreshDash();
+    });
+}
+
+// สร้าง dashboard content (ครั้งแรก)
+function buildDashContent(){
+  if(dashBuilt) return;
+  dashBuilt = true;
+  document.getElementById('dash-body').innerHTML = `
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">หลังที่สำรวจ</div><div class="metric-value" id="d-h">0</div><div class="metric-unit">หลัง</div></div>
+      <div class="metric"><div class="metric-label">พบลูกน้ำ</div><div class="metric-value danger" id="d-ph">0</div><div class="metric-unit">หลัง</div></div>
+    </div>
+    <div class="metric-3">
+      <div class="metric"><div class="metric-label">HI</div><div class="metric-value" id="d-hi" style="font-size:20px">0%</div><div class="metric-unit">≥10% = เสี่ยง</div></div>
+      <div class="metric"><div class="metric-label">CI</div><div class="metric-value" id="d-ci" style="font-size:20px">0%</div><div class="metric-unit">≥10% = เสี่ยง</div></div>
+      <div class="metric"><div class="metric-label">BI</div><div class="metric-value" id="d-bi" style="font-size:20px">0</div><div class="metric-unit">≥50 = เสี่ยง</div></div>
+    </div>
+    <div class="card"><h3>HI รายตำบล / หมู่</h3><div style="position:relative;height:210px"><canvas id="chart-area"></canvas></div></div>
+    <div class="card"><h3>ภาชนะที่พบลูกน้ำ</h3><div style="position:relative;height:190px"><canvas id="chart-cont"></canvas></div></div>
+    <div class="card">
+      <h3>ตารางความเสี่ยงรายพื้นที่</h3>
+      <table class="risk-table">
+        <thead><tr><th>ตำบล / หมู่</th><th>HI%</th><th>CI%</th><th>BI</th><th>ระดับ</th></tr></thead>
+        <tbody id="risk-tbody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button onclick="exportPDF()" style="flex:1;padding:11px;background:#1E3A8A;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🖨️ บันทึก PDF</button>
+      <button onclick="lockDash()" style="padding:11px 16px;background:#E5E5E5;color:#555;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🔒 ล็อก</button>
+    </div>`;
+}
+
+// ===== FORM =====
+function buildContainerRows(){
+  document.getElementById('crows').innerHTML = CONTAINERS.map((n,i)=>`
+    <div class="crow">
+      <span style="font-size:13px">${n}</span>
+      <input type="number" min="0" id="cs${i}" value="" oninput="calcTot()">
+      <input type="number" min="0" id="cp${i}" value="" oninput="calcTot()">
+    </div>`).join('');
+  document.getElementById('measures').innerHTML = MEASURES.map((m,i)=>`
+    <label style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #f2f2f2;font-size:13px;cursor:pointer">
+      <input type="checkbox" id="msr${i}" style="width:17px;height:17px;accent-color:#0D5C3A"> ${m}
+    </label>`).join('');
+}
+function calcTot(){
+  let t=0,p=0;
+  CONTAINERS.forEach((_,i)=>{
+    t+=parseInt(document.getElementById('cs'+i)?.value||0)||0;
+    p+=parseInt(document.getElementById('cp'+i)?.value||0)||0;
+  });
+  document.getElementById('tot-c').textContent=t;
+  document.getElementById('tot-p').textContent=p;
+}
+function startSurvey(){
+  const tambon=document.getElementById('f-tambon').value;
+  const date=getDateISO();
+  if(!tambon){ showToast('กรุณาเลือกตำบล','#B91C1C'); return; }
+  if(!date){ showToast('กรุณาเลือกวันที่ให้ครบ','#B91C1C'); return; }
+  if(date>'2026-06-05'){ showToast('วันที่เกินกำหนด (สูงสุด 5 มิ.ย. 2569)','#B91C1C'); return; }
+  state.moo=document.getElementById('f-moo').value.trim();
+  state.tambon=tambon;
+  state.surveyor=document.getElementById('f-surveyor').value.trim();
+  state.date=date;
+  state.totalH=parseInt(document.getElementById('f-total').value)||20;
+  state.current=1; state.records=[];
+  buildContainerRows();
+  document.getElementById('s-setup').style.display='none';
+  document.getElementById('s-house').style.display='block';
+  updateHouseHeader();
+}
+function updateHouseHeader(){
+  const h=state.current,t=state.totalH;
+  document.getElementById('house-title').textContent=`หลังคาเรือนที่ ${h} / ${t}`;
+  document.getElementById('house-meta').textContent=`ต.${state.tambon} หมู่ ${state.moo||'-'} · ${formatDateTH(state.date)}`;
+  document.getElementById('top-step').textContent=`${h}/${t}`;
+  document.getElementById('prog').style.width=Math.round((h-1)/t*100)+'%';
+  document.getElementById('h-addr').value='';
+  document.getElementById('h-owner').value='';
+  CONTAINERS.forEach((_,i)=>{ document.getElementById('cs'+i).value=''; document.getElementById('cp'+i).value=''; });
+  MEASURES.forEach((_,i)=>{ document.getElementById('msr'+i).checked=false; });
+  calcTot();
+}
+function getRecord(){
+  const cs=CONTAINERS.map((n,i)=>({name:n,s:parseInt(document.getElementById('cs'+i).value||0)||0,p:parseInt(document.getElementById('cp'+i).value||0)||0}));
+  const totalC=cs.reduce((a,c)=>a+c.s,0),posC=cs.reduce((a,c)=>a+c.p,0);
+  const msrs=MEASURES.filter((_,i)=>document.getElementById('msr'+i).checked).join(', ');
+  return{no:state.current,addr:document.getElementById('h-addr').value.trim(),owner:document.getElementById('h-owner').value.trim(),containers:cs,totalC,posC,hasLarvae:posC>0,measures:msrs,skipped:false};
+}
+function submitHouse(){
+  const rec=getRecord();
+  state.records.push(rec);
+  sendToSheets(rec);
+  if(state.current>=state.totalH) finishSurvey();
+  else { state.current++; updateHouseHeader(); }
+}
+function skipHouse(){
+  state.records.push({no:state.current,skipped:true,totalC:0,posC:0,hasLarvae:false});
+  if(state.current>=state.totalH) finishSurvey();
+  else { state.current++; updateHouseHeader(); }
+}
+function finishSurvey(){
+  document.getElementById('s-house').style.display='none';
+  document.getElementById('s-summary').style.display='block';
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('top-step').textContent='เสร็จ';
+  const recs=state.records.filter(r=>!r.skipped);
+  const h=recs.length,ph=recs.filter(r=>r.hasLarvae).length;
+  const c=recs.reduce((a,r)=>a+r.totalC,0),pc=recs.reduce((a,r)=>a+r.posC,0);
+  const hi=h>0?ph/h*100:0,ci=c>0?pc/c*100:0,bi=h>0?pc/h*100:0;
+  document.getElementById('sum-h').textContent=h;
+  document.getElementById('sum-ph').textContent=ph;
+  setIdx('sum-hi',hi,'%',false);
+  setIdx('sum-ci',ci,'%',false);
+  setIdx('sum-bi',bi,'',true);
+  document.getElementById('sum-meta').textContent=[state.tambon?'ต.'+state.tambon:'',state.moo?'หมู่ '+state.moo:'','อ.กันทรลักษ์',formatDateTH(state.date)].filter(Boolean).join(' · ');
+  document.getElementById('sum-list').innerHTML=state.records.map(r=>{
+    if(r.skipped) return `<div class="sum-card"><span>หลังที่ ${r.no}</span><span style="color:#aaa;font-size:12px">ข้าม</span></div>`;
+    return `<div class="sum-card"><span><span class="dot" style="background:${r.hasLarvae?'#B91C1C':'#0D5C3A'}"></span>หลังที่ ${r.no}${r.addr?' — '+r.addr:''}</span><span style="font-size:12px;color:#777">${r.hasLarvae?'⚠️ พบลูกน้ำ':'✅ ไม่พบ'} · ${r.totalC} ภาชนะ</span></div>`;
+  }).join('');
+}
+function restartSurvey(){
+  document.getElementById('s-summary').style.display='none';
+  document.getElementById('s-setup').style.display='block';
+  document.getElementById('prog').style.width='0%';
+  document.getElementById('top-step').textContent='';
+  document.getElementById('date-preview').textContent='';
+}
+
+// ===== SEND TO SHEETS =====
+function sendToSheets(rec){
+  if(!SCRIPT_URL||SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE') return;
+  const p={
+    date:state.date,moo:state.moo,tambon:state.tambon,amphoe:'กันทรลักษ์',surveyor:state.surveyor,
+    houseNo:rec.no,addr:rec.addr,owner:rec.owner,
+    c0s:rec.containers[0]?.s||0,c0p:rec.containers[0]?.p||0,
+    c1s:rec.containers[1]?.s||0,c1p:rec.containers[1]?.p||0,
+    c2s:rec.containers[2]?.s||0,c2p:rec.containers[2]?.p||0,
+    c3s:rec.containers[3]?.s||0,c3p:rec.containers[3]?.p||0,
+    c4s:rec.containers[4]?.s||0,c4p:rec.containers[4]?.p||0,
+    c5s:rec.containers[5]?.s||0,c5p:rec.containers[5]?.p||0,
+    c6s:rec.containers[6]?.s||0,c6p:rec.containers[6]?.p||0,
+    totalC:rec.totalC,posC:rec.posC,hasLarvae:rec.hasLarvae,measures:rec.measures
+  };
+  showToast('กำลังบันทึก...','#555');
+  fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)})
+    .then(()=>showToast('✅ บันทึกลง Sheets แล้ว','#0D5C3A'))
+    .catch(()=>showToast('⚠️ ส่งข้อมูลไม่สำเร็จ','#B91C1C'));
+}
+
+// ===== FILTER =====
+function getFiltered(){
+  return sheetsData.filter(r=>{
+    if(!r||r.totalC<=0) return false;
+    if(filterFrom&&r.date<filterFrom) return false;
+    if(filterTo&&r.date>filterTo) return false;
+    if(filterTambon&&r.tambon!==filterTambon) return false;
+    return true;
+  });
+}
+function applyFilter(){
+  filterFrom=document.getElementById('df-from').value;
+  filterTo=document.getElementById('df-to').value;
+  filterTambon=document.getElementById('df-tambon').value;
+  refreshDash();
+}
+function resetFilter(){
+  filterFrom='';filterTo='';filterTambon='';
+  document.getElementById('df-from').value='';
+  document.getElementById('df-to').value='';
+  document.getElementById('df-tambon').value='';
+  refreshDash();
+}
+function updateDateInfo(recs,elId){
+  const el=document.getElementById(elId);
+  if(!el) return;
+  const tb=filterTambon?'ต.'+filterTambon+' · ':'';
+  if(!recs.length){ el.textContent=tb+'ไม่มีข้อมูลในช่วงนี้'; return; }
+  const dates=recs.map(r=>r.date).filter(Boolean).sort();
+  const from=formatDateTH(dates[0]),to=formatDateTH(dates[dates.length-1]);
+  el.textContent=tb+(from===to?'วันที่ '+from:from+' — '+to);
+}
+
+// ===== DASHBOARD =====
+function getAreas(recs){
+  const map={};
+  recs.forEach(r=>{
+    const key=(r.tambon||'ไม่ระบุ')+' หมู่'+(r.moo||'?');
+    if(!map[key]) map[key]={h:0,ph:0,c:0,pc:0,tambon:r.tambon};
+    map[key].h++; if(r.hasLarvae) map[key].ph++;
+    map[key].c+=r.totalC; map[key].pc+=r.posC;
+  });
+  return Object.entries(map).map(([k,v])=>({key:k,hi:v.h>0?v.ph/v.h*100:0,ci:v.c>0?v.pc/v.c*100:0,bi:v.h>0?v.pc/v.h*100:0,...v})).sort((a,b)=>b.hi-a.hi);
+}
+function refreshDash(){
+  if(!dashBuilt) return;
+  const recs=getFiltered();
+  updateDateInfo(recs,'date-range-info');
+  if(!recs.length){
+    ['d-h','d-ph'].forEach(id=>{const el=document.getElementById(id);if(el) el.textContent='0';});
+    ['d-hi','d-ci','d-bi'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent='0';el.className='metric-value';}});
+    const tb=document.getElementById('risk-tbody');
+    if(tb) tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px">ไม่มีข้อมูล</td></tr>';
+    return;
+  }
+  const h=recs.length,ph=recs.filter(r=>r.hasLarvae).length;
+  const c=recs.reduce((a,r)=>a+r.totalC,0),pc=recs.reduce((a,r)=>a+r.posC,0);
+  const hi=h>0?ph/h*100:0,ci=c>0?pc/c*100:0,bi=h>0?pc/h*100:0;
+  document.getElementById('d-h').textContent=h;
+  document.getElementById('d-ph').textContent=ph;
+  setIdx('d-hi',hi,'%',false);
+  setIdx('d-ci',ci,'%',false);
+  setIdx('d-bi',bi,'',true);
+  const areas=getAreas(recs);
+  if(chartArea) chartArea.destroy();
+  chartArea=new Chart(document.getElementById('chart-area'),{type:'bar',
+    data:{labels:areas.map(a=>a.key),datasets:[{label:'HI(%)',data:areas.map(a=>+a.hi.toFixed(2)),backgroundColor:areas.map(a=>isRisk(a.hi,a.ci,a.bi)?'#B91C1C':'#0D5C3A'),borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f0f0f0'}},x:{grid:{display:false}}}}});
+  const cpos=new Array(CONTAINERS.length).fill(0);
+  recs.forEach(r=>{if(r.containers) r.containers.forEach((cv,i)=>{cpos[i]+=cv.p;});});
+  if(chartCont) chartCont.destroy();
+  chartCont=new Chart(document.getElementById('chart-cont'),{type:'bar',
+    data:{labels:['โอ่งน้ำ','น้ำใช้','ตู้กับข้าว','โอ่งใหญ่','ยางรถ','วงบ่อ','อื่นๆ'],datasets:[{label:'มีลูกน้ำ',data:cpos,backgroundColor:'#0D5C3A',borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f0f0f0'}},x:{grid:{display:false}}}}});
+  document.getElementById('risk-tbody').innerHTML=areas.map(a=>{
+    const r=isRisk(a.hi,a.ci,a.bi);
+    return `<tr><td>${a.key}</td><td style="font-weight:700;color:${a.hi>=10?'#B91C1C':'#0D5C3A'}">${a.hi.toFixed(1)}%</td><td style="font-weight:700;color:${a.ci>=10?'#B91C1C':'#0D5C3A'}">${a.ci.toFixed(1)}%</td><td style="font-weight:700;color:${a.bi>=50?'#B91C1C':'#0D5C3A'}">${a.bi.toFixed(1)}</td><td><span class="badge ${r?'badge-red':'badge-green'}">${r?'เสี่ยงสูง':'เสี่ยงต่ำ'}</span></td></tr>`;
+  }).join('');
+  updateMapMarkers(recs);
+}
+
+// ===== MAP =====
+function initMap(){
+  if(leafMap){ leafMap.invalidateSize(); updateMapMarkers(getFiltered()); return; }
+  leafMap=L.map('map').setView([14.585,104.64],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(leafMap);
+  updateMapMarkers(getFiltered());
+}
+function updateMapMarkers(recs){
+  if(!leafMap) return;
+  updateDateInfo(recs,'map-date-info');
+  leafMap.eachLayer(l=>{if(l instanceof L.CircleMarker) leafMap.removeLayer(l);});
+  const tm={};
+  (recs||[]).forEach(r=>{
+    const k=r.tambon||'ไม่ระบุ';
+    if(!tm[k]) tm[k]={h:0,ph:0,c:0,pc:0};
+    tm[k].h++; if(r.hasLarvae) tm[k].ph++;
+    tm[k].c+=r.totalC; tm[k].pc+=r.posC;
+  });
+  const sumEl=document.getElementById('map-summary');
+  if(!Object.keys(tm).length){
+    Object.entries(TAMBON_COORDS).forEach(([name,coords])=>{
+      L.circleMarker(coords,{radius:14,color:'#fff',weight:2.5,fillColor:'#9CA3AF',fillOpacity:.7}).addTo(leafMap).bindPopup(`<b>ต.${name}</b><br><i>ยังไม่มีข้อมูล</i>`);
+    });
+    if(sumEl) sumEl.innerHTML='<div style="color:#aaa;text-align:center;padding:12px;font-size:13px">ยังไม่มีข้อมูล</div>';
+    return;
+  }
+  let sumHTML='';
+  Object.entries(tm).forEach(([name,v])=>{
+    const hi=v.h>0?v.ph/v.h*100:0,ci=v.c>0?v.pc/v.c*100:0,bi=v.h>0?v.pc/v.h*100:0;
+    const risk=isRisk(hi,ci,bi);
+    const color=risk?'#B91C1C':'#0D5C3A';
+    const level=risk?'⚠️ เสี่ยงสูง':'✅ เสี่ยงต่ำ';
+    const coords=TAMBON_COORDS[name]||[14.585,104.64];
+    L.circleMarker(coords,{radius:Math.max(12,Math.min(28,v.h*1.2)),color:'#fff',weight:2.5,fillColor:color,fillOpacity:.88})
+      .addTo(leafMap).bindPopup(`<div style="font-family:Sarabun,sans-serif;min-width:170px"><b style="font-size:14px">ต.${name}</b><br><span style="color:#555;font-size:12px">หลังที่สำรวจ: <b>${v.h} หลัง</b></span><br><span style="color:#555;font-size:12px">พบลูกน้ำ: <b style="color:${color}">${v.ph} หลัง</b></span><hr style="margin:5px 0;border:none;border-top:1px solid #eee"><span style="font-size:12px">HI: <b style="color:${hi>=10?'#B91C1C':'#0D5C3A'}">${hi.toFixed(1)}%</b> &nbsp; CI: <b style="color:${ci>=10?'#B91C1C':'#0D5C3A'}">${ci.toFixed(1)}%</b> &nbsp; BI: <b style="color:${bi>=50?'#B91C1C':'#0D5C3A'}">${bi.toFixed(1)}</b></span><br><b style="color:${color};font-size:13px">${level}</b></div>`);
+    sumHTML+=`<div class="sum-card"><span><span class="dot" style="background:${color}"></span>ต.${name}</span><span style="font-size:12px;color:#555">${v.h} หลัง · HI ${hi.toFixed(1)}% · BI ${bi.toFixed(1)}</span></div>`;
+  });
+  if(sumEl) sumEl.innerHTML=sumHTML;
+}
+
+// ===== PDF =====
+function exportPDF(){
+  const recs=getFiltered();
+  const h=recs.length,ph=recs.filter(r=>r.hasLarvae).length;
+  const c=recs.reduce((a,r)=>a+r.totalC,0),pc=recs.reduce((a,r)=>a+r.posC,0);
+  const hi=h>0?(ph/h*100).toFixed(2):0,ci=c>0?(pc/c*100).toFixed(2):0,bi=h>0?(pc/h*100).toFixed(2):0;
+  const risk=isRisk(+hi,+ci,+bi);
+  const areas=getAreas(recs);
+  const dates=recs.map(r=>r.date).filter(Boolean).sort();
+  const dr=dates.length?formatDateTH(dates[0])+' ถึง '+formatDateTH(dates[dates.length-1]):'ไม่ระบุ';
+  const now=new Date(),today=now.getDate()+' '+MONTHS_TH[now.getMonth()]+' '+(now.getFullYear()+543);
+  const tambonTxt=filterTambon?'ตำบล'+filterTambon+' อำเภอกันทรลักษ์':'อำเภอกันทรลักษ์ จังหวัดศรีสะเกษ';
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>รายงานสำรวจลูกน้ำยุงลาย</title>
+  <style>body{font-family:'Sarabun',sans-serif;margin:30px;color:#111;font-size:14px;line-height:1.7}h1{font-size:20px;color:#0D5C3A;text-align:center;margin-bottom:4px;font-weight:700}.sub{text-align:center;color:#555;font-size:13px;margin-bottom:24px}h2{font-size:15px;font-weight:700;color:#0D5C3A;border-bottom:2px solid #DCFCE7;padding-bottom:5px;margin:20px 0 10px}.mr{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}.mb{background:#f5f5f5;border-radius:8px;padding:12px;text-align:center;border:1px solid #ddd}.mb .l{font-size:11px;color:#777;font-weight:700;text-transform:uppercase}.mb .v{font-size:24px;font-weight:700}.red{color:#B91C1C}.green{color:#0D5C3A}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#0D5C3A;color:#fff;padding:9px 10px;text-align:left}td{padding:9px 10px;border-bottom:1px solid #eee}.br{background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}.bg{background:#DCFCE7;color:#14532D;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}.box{background:#DCFCE7;border-radius:8px;padding:14px;font-size:13px;margin-top:8px}.box.r{background:#FEE2E2}.box li{margin-bottom:5px}@media print{body{margin:15px}}</style></head><body>
+  <h1>รายงานสรุปผลการสำรวจลูกน้ำยุงลาย</h1>
+  <div class="sub">${tambonTxt}<br>ช่วงข้อมูล: ${dr}<br>วันที่จัดทำ: ${today}</div>
+  <h2>1. สรุปภาพรวม</h2>
+  <div class="mr"><div class="mb"><div class="l">หลังที่สำรวจ</div><div class="v">${h}</div><div class="l">หลัง</div></div><div class="mb"><div class="l">พบลูกน้ำ</div><div class="v red">${ph}</div><div class="l">หลัง</div></div><div class="mb"><div class="l">ไม่พบลูกน้ำ</div><div class="v green">${h-ph}</div><div class="l">หลัง</div></div></div>
+  <div class="mr"><div class="mb"><div class="l">House Index (HI)</div><div class="v ${+hi>=10?'red':'green'}">${hi}%</div><div class="l">เกณฑ์ &lt; 10%</div></div><div class="mb"><div class="l">Container Index (CI)</div><div class="v ${+ci>=10?'red':'green'}">${ci}%</div><div class="l">เกณฑ์ &lt; 10%</div></div><div class="mb"><div class="l">Breteau Index (BI)</div><div class="v ${+bi>=50?'red':'green'}">${bi}</div><div class="l">เกณฑ์ &lt; 50</div></div></div>
+  <h2>2. ความเสี่ยงรายพื้นที่</h2>
+  <table><thead><tr><th>ตำบล / หมู่</th><th>หลัง</th><th>HI%</th><th>CI%</th><th>BI</th><th>ระดับ</th></tr></thead><tbody>${areas.map(a=>{const r=isRisk(a.hi,a.ci,a.bi);return`<tr><td>${a.key}</td><td>${a.h}</td><td style="font-weight:700;color:${a.hi>=10?'#B91C1C':'#0D5C3A'}">${a.hi.toFixed(1)}%</td><td style="font-weight:700;color:${a.ci>=10?'#B91C1C':'#0D5C3A'}">${a.ci.toFixed(1)}%</td><td style="font-weight:700;color:${a.bi>=50?'#B91C1C':'#0D5C3A'}">${a.bi.toFixed(1)}</td><td><span class="${r?'br':'bg'}">${r?'เสี่ยงสูง':'เสี่ยงต่ำ'}</span></td></tr>`;}).join('')}</tbody></table>
+  <h2>3. ข้อเสนอแนะ</h2>
+  <div class="box ${risk?'r':''}"><ul>${risk?'<li>เร่งรัดกำจัดแหล่งเพาะพันธุ์ยุงลายในพื้นที่เสี่ยงสูงทันที</li><li>เพิ่มความถี่การสำรวจในพื้นที่เสี่ยงเป็นทุก 2 สัปดาห์</li><li>ประสานงาน อสม. รณรงค์ให้ประชาชนกำจัดลูกน้ำในบ้านเรือน</li><li>พิจารณาพ่นหมอกควันในพื้นที่ที่มีรายงานผู้ป่วยไข้เลือดออก</li>':'<li>คงมาตรการเฝ้าระวังและสำรวจตามปกติต่อเนื่อง</li><li>รณรงค์ให้ประชาชนหมั่นตรวจสอบและทำลายแหล่งเพาะพันธุ์</li><li>ติดตามผลการสำรวจในรอบถัดไปอย่างต่อเนื่อง</li>'}</ul></div>
+  <script>window.onload=function(){window.print();};<\/script></body></html>`);
+  win.document.close();
+}
+</script>
+</body>
+</html>
