@@ -220,10 +220,12 @@ body{font-family:'Sarabun',sans-serif;background:#ECECEC;color:#111;font-size:15
       <h3>มาตรการที่ดำเนินการ</h3>
       <div id="measures"></div>
     </div>
+
     <div style="display:flex;gap:8px">
-      <button class="btn btn-secondary" onclick="skipHouse()">ข้ามหลังนี้</button>
-      <button class="btn btn-primary" style="flex:1" onclick="submitHouse()">บันทึก → หลังถัดไป</button>
-    </div>
+  <button class="btn btn-secondary" id="btn-back" onclick="prevHouse()" style="display:none">← ย้อนกลับ</button>
+  <button class="btn btn-secondary" onclick="skipHouse()">ข้าม</button>
+  <button class="btn btn-primary" style="flex:1" onclick="submitHouse()">บันทึก →</button>
+</div>
     <button class="btn btn-outline" onclick="finishSurvey()">จบการสำรวจและดูสรุป</button>
   </div>
 
@@ -552,6 +554,9 @@ function updateHouseHeader(){
   CONTAINERS.forEach((_,i)=>{ document.getElementById('cs'+i).value=''; document.getElementById('cp'+i).value=''; });
   MEASURES.forEach((_,i)=>{ document.getElementById('msr'+i).checked=false; });
   calcTot();
+  // แสดง/ซ่อนปุ่มย้อนกลับ
+const btnBack = document.getElementById('btn-back');
+if(btnBack) btnBack.style.display = state.current > 1 ? 'block' : 'none';
 }
 function getRecord(){
   const cs=CONTAINERS.map((n,i)=>({name:n,s:parseInt(document.getElementById('cs'+i).value||0)||0,p:parseInt(document.getElementById('cp'+i).value||0)||0}));
@@ -570,6 +575,34 @@ function skipHouse(){
   state.records.push({no:state.current,skipped:true,totalC:0,posC:0,hasLarvae:false});
   if(state.current>=state.totalH) finishSurvey();
   else { state.current++; updateHouseHeader(); }
+}
+function prevHouse(){
+  if(state.current <= 1) return;
+  // ลบ record ของหลังปัจจุบัน (ถ้ามี)
+  state.records = state.records.filter(r => r.no !== state.current);
+  state.current--;
+  // โหลดข้อมูลของหลังก่อนหน้ากลับมา
+  const prev = state.records.find(r => r.no === state.current);
+  state.records = state.records.filter(r => r.no !== state.current);
+  updateHouseHeader();
+  // ถ้ามีข้อมูลเดิมของหลังนั้น โหลดกลับมาให้
+  if(prev && !prev.skipped){
+    document.getElementById('h-addr').value  = prev.addr  || '';
+    document.getElementById('h-owner').value = prev.owner || '';
+    if(prev.containers){
+      prev.containers.forEach((cv,i)=>{
+        document.getElementById('cs'+i).value = cv.s||'';
+        document.getElementById('cp'+i).value = cv.p||'';
+      });
+    }
+    if(prev.measures){
+      const msrList = prev.measures.split(', ');
+      MEASURES.forEach((m,i)=>{
+        document.getElementById('msr'+i).checked = msrList.includes(m);
+      });
+    }
+    calcTot();
+  }
 }
 function finishSurvey(){
   document.getElementById('s-house').style.display='none';
